@@ -1,0 +1,81 @@
+module FIFO_2clk #(parameter FIFOD=8, DATAD=8)(clk_r,clk_w,rst,in,out,wr,rd,empty,full,fifo_counter);
+input rst,clk_r,clk_w,wr,rd;
+input [(DATAD-1):0]in;
+output reg [(DATAD-1):0]out;
+output reg full,empty;
+output reg [($clog2(FIFOD)-1):0] fifo_counter; //The counter counts no of words(8bits each) in fifo not bits
+
+reg [($clog2(FIFOD)-1):0] rd_ptr,wr_ptr;
+reg [(DATAD-1):0] mem [0:FIFOD-1];
+
+always@(fifo_counter)begin
+  empty=(fifo_counter==0);
+  full=(fifo_counter==FIFOD);
+end
+
+always@(posedge clk_w or posedge rst)begin
+  if(rst)
+    fifo_counter<=0;
+  else begin 
+    if(!full&&wr)
+      fifo_counter<=fifo_counter+1;
+    else
+      fifo_counter<=fifo_counter;                                                                                       
+  end
+end
+  
+always@(posedge clk_r or posedge rst)begin
+  if(rst)
+    fifo_counter<=0;
+  else begin 
+    if(!empty&&rd)
+      fifo_counter<=fifo_counter-1;
+    else
+      fifo_counter<=fifo_counter;                                                                                       
+  end
+end
+        
+  
+  always@(posedge clk_r or posedge rst)begin
+    if(rst)
+      out<=0;
+    else begin
+        if(rd&&!empty)
+              out<=mem[rd_ptr];
+        else
+              out<=out;
+    end
+  end
+  
+always@(posedge clk_w)begin
+  if(wr&&!full)
+    mem[wr_ptr]<=in;
+  else
+    mem[wr_ptr]<=mem[wr_ptr];
+end
+
+always@(posedge clk_r or posedge rst)begin
+  if(rst)begin
+    rd_ptr<=0;
+  end
+else begin
+  if(!empty&&rd)
+    rd_ptr<=rd_ptr+1;
+  else
+    rd_ptr<=rd_ptr;
+  end
+end
+
+always@(posedge clk_w or posedge rst)begin
+  if(rst)begin
+    wr_ptr<=0;
+  end
+else begin
+  if(!full&&wr)
+    wr_ptr<=wr_ptr+1;
+  else
+    wr_ptr<=wr_ptr;
+
+  end
+end
+endmodule 
