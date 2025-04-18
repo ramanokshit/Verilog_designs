@@ -1,0 +1,18 @@
+//carry look ahead adder
+module carry_lookahead_adder #(parameter N = 8)(input [(N-1):0]a,b, input cin, output [(N-1):0] sum, output cout);
+    wire [(N-1):0] g,p;
+    wire [N:0]   c;
+    genvar i;
+    assign c[0] = cin;
+
+    generate
+        for (i=0;i<N;i=i+1) begin
+            assign g[i]=a[i] & b[i];
+            assign p[i]=a[i] ^ b[i];
+            assign c[i+1]=g[i] | (p[i] & c[i]);
+            assign sum[i]=p[i] ^ c[i];
+        end
+    endgenerate
+
+    assign cout=c[N];
+endmodule
