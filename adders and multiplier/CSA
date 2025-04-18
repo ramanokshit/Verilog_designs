@@ -1,0 +1,29 @@
+module carry_select_adder #(parameter N = 8)(input  [(N-1):0] a,b, input  cin, output [(N-1):0] sum, output cout);
+    localparam M = N/2;
+
+    wire [(M-1):0] sum_low, sum_high0, sum_high1;
+    wire cout_low, cout_high0, cout_high1;
+
+    ripple_carry_adder #(M) lower_half (.a(a[(M-1):0]),.b(b[(M-1):0]),.cin(cin),.sum(sum_low),.cout(cout_low));
+    ripple_carry_adder #(M) upper_half_0 (.a(a[(N-1):M]),.b(b[(N-1):M]),.cin(1'b0),.sum(sum_high0),.cout(cout_high0));
+    ripple_carry_adder #(M) upper_half_1 (.a(a[(N-1):M]),.b(b[(N-1):M]),.cin(1'b1),.sum(sum_high1),.cout(cout_high1));
+
+    assign sum[(M-1):0] = sum_low;
+    assign sum[(N-1):M] = (cout_low == 1'b0) ? sum_high0 : sum_high1;
+    assign cout = (cout_low == 1'b0) ? cout_high0 : cout_high1;
+endmodule
+
+module ripple_carry_adder #(parameter N = 4)(input  [(N-1):0] a,b, input cin, output [(N-1):0] sum, output cout);
+    wire [N:0] c;
+    assign c[0] = cin;
+
+    genvar i;
+    generate
+        for (i = 0; i < N; i = i + 1) begin
+            assign sum[i]=a[i] ^ b[i] ^ c[i];
+            assign c[i+1]=(a[i] & b[i]) | (b[i] & c[i]) | (a[i] & c[i]);
+        end
+    endgenerate
+
+    assign cout = c[N];
+endmodule
