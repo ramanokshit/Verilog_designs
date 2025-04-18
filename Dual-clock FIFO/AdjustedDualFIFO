@@ -1,0 +1,81 @@
+module FIFO_2clk #(parameter FIFOD = 8,parameter DATAD = 8)(clk_r,clk_w,rst,in,out,wr,rd,empty,full);
+input rst,clk_r,clk_w,wr,rd;
+input [(DATAD-1):0] in;
+output reg full,empty;
+output reg [(DATAD-1):0] out;
+
+localparam ADDR_WIDTH = $clog2(FIFOD);
+reg [(DATAD-1):0] mem [0:FIFOD-1];
+
+reg [ADDR_WIDTH:0] wr_ptr_bin, wr_ptr_gray;
+reg [ADDR_WIDTH:0] wr_ptr_bin_next, wr_ptr_gray_next;
+reg [ADDR_WIDTH:0] rd_ptr_gray_sync1_w, rd_ptr_gray_sync2_w;
+
+reg [ADDR_WIDTH:0] rd_ptr_bin, rd_ptr_gray;
+reg [ADDR_WIDTH:0] rd_ptr_bin_next, rd_ptr_gray_next;
+reg [ADDR_WIDTH:0] wr_ptr_gray_sync1_r, wr_ptr_gray_sync2_r;
+
+function [ADDR_WIDTH:0] bin2gray;
+  input [ADDR_WIDTH:0] bin;
+  bin2gray = bin ^ (bin >> 1);
+endfunction
+
+function [ADDR_WIDTH:0] gray2bin;
+  input [ADDR_WIDTH:0] gray;
+  integer i;
+  begin
+    gray2bin[ADDR_WIDTH] = gray[ADDR_WIDTH];
+    for (i = ADDR_WIDTH-1; i >= 0; i = i - 1)
+      gray2bin[i] = gray2bin[i+1] ^ gray[i];
+  end
+endfunction
+
+always @(posedge clk_w or posedge rst) begin
+  if (rst) begin
+    wr_ptr_bin <= 0;
+    wr_ptr_gray <= 0;
+  end else if (wr && !full) begin
+    mem[wr_ptr_bin[ADDR_WIDTH-1:0]] <= in;
+    wr_ptr_bin <= wr_ptr_bin + 1;
+    wr_ptr_gray <= bin2gray(wr_ptr_bin + 1);
+  end
+end
+
+always @(posedge clk_w or posedge rst) begin
+  if (rst) begin
+    rd_ptr_gray_sync1_w <= 0;
+    rd_ptr_gray_sync2_w <= 0;
+  end else begin
+    rd_ptr_gray_sync1_w <= rd_ptr_gray;
+    rd_ptr_gray_sync2_w <= rd_ptr_gray_sync1_w;
+  end
+end
+
+always @(*) begin
+  full = (wr_ptr_gray_next == {~rd_ptr_gray_sync2_w[ADDR_WIDTH:ADDR_WIDTH-1], rd_ptr_gray_sync2_w[ADDR_WIDTH-2:0]});
+  empty = (rd_ptr_gray == wr_ptr_gray_sync2_r);
+end
+
+
+always @(posedge clk_r or posedge rst) begin
+  if (rst) begin
+    rd_ptr_bin <= 0;
+    rd_ptr_gray <= 0;
+    out <= 0;
+  end else if (rd && !empty) begin
+    out <= mem[rd_ptr_bin[ADDR_WIDTH-1:0]];
+    rd_ptr_bin <= rd_ptr_bin + 1;
+    rd_ptr_gray <= bin2gray(rd_ptr_bin + 1); 
+  end
+end
+
+always @(posedge clk_r or posedge rst) begin
+  if (rst) begin
+    wr_ptr_gray_sync1_r <= 0;
+    wr_ptr_gray_sync2_r <= 0;
+  end else begin
+    wr_ptr_gray_sync1_r <= wr_ptr_gray;
+    wr_ptr_gray_sync2_r <= wr_ptr_gray_sync1_r;
+  end
+end
+endmodule
