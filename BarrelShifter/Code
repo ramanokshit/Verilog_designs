@@ -1,0 +1,12 @@
+module Barrelshift #(parameter DEPTH=8)(Out,Di,n,I);
+  output reg [(DEPTH-1):0]Out;
+  input Di;
+  input [($clog2(DEPTH)-1):0]n;
+  input [(DEPTH-1):0]I;
+always@(*)begin
+  if(Di)
+    Out=I<<n;
+  else
+    Out=I>>n;
+end
+endmodule
