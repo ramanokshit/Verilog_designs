@@ -1,0 +1,28 @@
+module FIR (input[3:0] x0,x1,x2,input rst,output reg [15:0]out);
+
+reg [7:0] c0 =8'd2,c1=8'd5,c2=8'd7; //coefficients of FIR filter
+reg [11:0] da_accum;
+reg [7:0] LUT [0:7];
+
+always @(*) begin
+    LUT[0] = 8'd0;
+    LUT[1] = c0;
+    LUT[2] = c1;
+    LUT[3] = c0 + c1;
+    LUT[4] = c2;
+    LUT[5] = c2 + c0;
+    LUT[6] = c2 + c1;
+    LUT[7] = c2 + c1 + c0;
+
+    if (rst) begin
+        out = 16'd0;
+    end else begin
+        da_accum = 0;
+        da_accum = da_accum + (LUT[{x2[0], x1[0], x0[0]}] << 0);
+        da_accum = da_accum + (LUT[{x2[1], x1[1], x0[1]}] << 1);
+        da_accum = da_accum + (LUT[{x2[2], x1[2], x0[2]}] << 2);
+        da_accum = da_accum + (LUT[{x2[3], x1[3], x0[3]}] << 3);
+        out = da_accum;
+    end
+end
+endmodule
