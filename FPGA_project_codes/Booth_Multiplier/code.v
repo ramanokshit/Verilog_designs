@@ -1,23 +1,19 @@
-module MAIN (input signed [5:0] A,B,output reg signed [11:0] P);
-reg signed [5:0] M, Q;
-reg Q_1;
-reg [5:0] Acc;
-reg [2:0] count;
-  
-always @(*) begin
-M = A;
-Q = B;
-Q_1 = 0;
-Acc = 0;
-count = 6;
-repeat (6) begin
-case ({Q[0], Q_1})
-2'b01: Acc = Acc + M;
-2'b10: Acc = Acc – M;
-endcase
-{Acc, Q, Q_1} = {Acc[5], Acc, Q};
-count = count - 1;
-end
-P = {Acc,Q};
-end
+module Booth_Multiplier #(parameter n=10)(input signed [n-1:0] M, Q, input rst, output reg signed [2*n-1:0] P);
+  reg signed [n-1:0]A,Q1;
+  integer i;
+  localparam k=$clog2(n);
+  reg q;
+  always@(posedge rst) begin
+    A<=0; q<=0;Q1<=Q;
+  for(i=0; i<n; i=i+1) begin
+    case({Q1[0],q})
+      2'b10:A<=A-M;
+      2'b01:A<=A+M;
+      default:A<=A;
+    endcase
+    {A,Q1,q}={A,Q1,q}>>1;
+  end
+  P={A,Q1};
+  end
 endmodule
+
